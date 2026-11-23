@@ -1,0 +1,2165 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Khỉ Leo Cây — Vượt Chướng Ngại Vật</title>
+  <style>
+    :root {
+      --bg-dark: #0e1f14;
+      --panel-bg: rgba(16, 36, 23, 0.86);
+      --panel-border: rgba(255, 224, 102, 0.35);
+      --gold: #ffd43b;
+      --gold-deep: #f08c00;
+      --leaf: #51cf66;
+      --danger: #ff6b6b;
+      --text: #f8fff4;
+      --muted: #c1dec6;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: radial-gradient(circle at top, #1f4b2c 0%, #0b1910 100%);
+      font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .game-shell {
+      position: relative;
+      width: min(100vw, 520px);
+      height: min(100vh, 880px);
+      max-height: 100dvh;
+      border-radius: 22px;
+      overflow: hidden;
+      box-shadow:
+        0 24px 70px rgba(0, 0, 0, 0.65),
+        0 0 0 2px rgba(255, 255, 255, 0.08),
+        inset 0 0 40px rgba(0, 0, 0, 0.25);
+      background: #173620;
+    }
+
+    @media (max-width: 540px) {
+      .game-shell {
+        width: 100vw;
+        height: 100dvh;
+        border-radius: 0;
+        box-shadow: none;
+      }
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      cursor: pointer;
+      touch-action: manipulation;
+    }
+
+    /* HUD */
+    .hud {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      padding: 12px 14px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 8px;
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    .hud-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .hud-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: rgba(11, 26, 16, 0.72);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      backdrop-filter: blur(8px);
+      font-weight: 700;
+      font-size: 14px;
+      letter-spacing: 0.2px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+    }
+
+    .pill.lives-pill {
+      border-color: rgba(255, 107, 107, 0.45);
+      transition: transform 0.18s ease, border-color 0.18s ease;
+    }
+
+    .pill.lives-pill.pop {
+      transform: scale(1.16);
+      border-color: var(--gold);
+    }
+
+    .pill.lives-pill.hurt {
+      transform: scale(0.92);
+      border-color: var(--danger);
+    }
+
+    .hearts-wrap {
+      display: inline-flex;
+      align-items: center;
+      gap: 2px;
+      font-size: 16px;
+      line-height: 1;
+    }
+
+    .lives-count {
+      color: #ffc9c9;
+      font-size: 13px;
+      margin-left: 2px;
+    }
+
+    .pill.score-pill {
+      border-color: rgba(81, 207, 102, 0.35);
+      color: #d8f5a2;
+    }
+
+    .pill.banana-pill {
+      border-color: rgba(255, 212, 59, 0.4);
+      color: #ffe066;
+    }
+
+    .pill.best-pill {
+      font-size: 12px;
+      padding: 4px 10px;
+      color: #b2f2bb;
+      opacity: 0.92;
+    }
+
+    .hud-actions {
+      display: flex;
+      gap: 6px;
+      pointer-events: auto;
+    }
+
+    .icon-btn {
+      width: 38px;
+      height: 38px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      background: rgba(11, 26, 16, 0.72);
+      backdrop-filter: blur(8px);
+      color: var(--text);
+      font-size: 17px;
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      transition: transform 0.12s ease, background 0.15s ease;
+    }
+
+    .icon-btn:hover {
+      background: rgba(28, 62, 38, 0.88);
+    }
+
+    .icon-btn:active {
+      transform: scale(0.92);
+    }
+
+    /* Touch helper bar at bottom */
+    .touch-hints {
+      position: absolute;
+      bottom: 14px;
+      left: 14px;
+      right: 14px;
+      display: flex;
+      justify-content: space-between;
+      pointer-events: none;
+      z-index: 8;
+      opacity: 0.85;
+      transition: opacity 0.3s ease;
+    }
+
+    .touch-hints.hidden {
+      opacity: 0;
+    }
+
+    .touch-btn {
+      pointer-events: auto;
+      width: 72px;
+      height: 54px;
+      border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      background: rgba(11, 26, 16, 0.48);
+      backdrop-filter: blur(4px);
+      color: #fff;
+      font-size: 22px;
+      font-weight: 800;
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      transition: transform 0.08s ease, background 0.12s ease;
+    }
+
+    .touch-btn:active {
+      transform: scale(0.92);
+      background: rgba(255, 212, 59, 0.35);
+    }
+
+    /* Milestone toast */
+    .toast {
+      position: absolute;
+      top: 86px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-16px) scale(0.92);
+      padding: 8px 18px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, rgba(255, 212, 59, 0.96), rgba(240, 140, 0, 0.96));
+      color: #2b1800;
+      font-weight: 800;
+      font-size: 14px;
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+      opacity: 0;
+      pointer-events: none;
+      z-index: 15;
+      white-space: nowrap;
+      transition: opacity 0.25s ease, transform 0.25s ease;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0) scale(1);
+    }
+
+    /* Overlays */
+    .overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 22px;
+      background: rgba(7, 18, 11, 0.56);
+      backdrop-filter: blur(5px);
+      z-index: 20;
+      transition: opacity 0.22s ease;
+    }
+
+    .overlay.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .card {
+      width: 100%;
+      max-width: 390px;
+      background: var(--panel-bg);
+      border: 1.5px solid var(--panel-border);
+      border-radius: 24px;
+      padding: 26px 22px 24px;
+      text-align: center;
+      box-shadow: 0 20px 55px rgba(0, 0, 0, 0.55);
+      animation: popIn 0.26s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    @keyframes popIn {
+      from {
+        opacity: 0;
+        transform: translateY(14px) scale(0.96);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    .badge-emoji {
+      font-size: 52px;
+      line-height: 1;
+      margin-bottom: 10px;
+      filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.35));
+    }
+
+    .card h1 {
+      font-size: 28px;
+      font-weight: 900;
+      letter-spacing: 0.5px;
+      background: linear-gradient(180deg, #fff3bf 0%, #ffd43b 55%, #f08c00 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 6px;
+    }
+
+    .card .subtitle {
+      font-size: 14px;
+      color: var(--muted);
+      margin-bottom: 18px;
+      line-height: 1.45;
+    }
+
+    .rules {
+      text-align: left;
+      background: rgba(0, 0, 0, 0.26);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      padding: 12px 14px;
+      margin-bottom: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+      font-size: 13.5px;
+      line-height: 1.4;
+      color: #e9fce9;
+    }
+
+    .rule-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+
+    .rule-icon {
+      font-size: 18px;
+      line-height: 1.2;
+      flex-shrink: 0;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-bottom: 18px;
+    }
+
+    .stat-box {
+      background: rgba(0, 0, 0, 0.28);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 14px;
+      padding: 10px 6px;
+    }
+
+    .stat-label {
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      margin-bottom: 4px;
+    }
+
+    .stat-value {
+      font-size: 20px;
+      font-weight: 800;
+      color: #fff;
+    }
+
+    .stat-box.highlight .stat-value {
+      color: var(--gold);
+    }
+
+    .new-record {
+      display: inline-block;
+      margin-bottom: 14px;
+      padding: 5px 12px;
+      border-radius: 999px;
+      background: rgba(255, 212, 59, 0.2);
+      border: 1px solid rgba(255, 212, 59, 0.65);
+      color: var(--gold);
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .new-record.hidden {
+      display: none;
+    }
+
+    .primary-btn {
+      width: 100%;
+      padding: 14px 20px;
+      border: none;
+      border-radius: 16px;
+      background: linear-gradient(180deg, #ffe066 0%, #fab005 55%, #e67700 100%);
+      color: #2b1600;
+      font-size: 17px;
+      font-weight: 900;
+      letter-spacing: 0.4px;
+      cursor: pointer;
+      box-shadow: 0 6px 0 #9c4a00, 0 12px 24px rgba(0, 0, 0, 0.35);
+      transition: transform 0.08s ease, box-shadow 0.08s ease, filter 0.15s ease;
+    }
+
+    .primary-btn:hover {
+      filter: brightness(1.06);
+    }
+
+    .primary-btn:active {
+      transform: translateY(4px);
+      box-shadow: 0 2px 0 #9c4a00, 0 5px 12px rgba(0, 0, 0, 0.35);
+    }
+
+    .controls-note {
+      margin-top: 12px;
+      font-size: 12px;
+      color: #9ec4a6;
+    }
+
+    .kbd {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #fff;
+      font-weight: 700;
+      font-size: 11px;
+    }
+  </style>
+</head>
+<body>
+  <div class="game-shell" id="gameShell">
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- HUD -->
+    <div class="hud">
+      <div class="hud-group">
+        <div class="hud-row">
+          <div class="pill lives-pill" id="livesPill" title="Sinh mạng">
+            <span class="hearts-wrap" id="heartsWrap">❤️</span>
+            <span class="lives-count" id="livesCount">x1</span>
+          </div>
+          <div class="pill score-pill" title="Độ cao">
+            <span>🌴</span>
+            <span id="heightDisplay">0 m</span>
+          </div>
+          <div class="pill banana-pill" title="Số chuối đã ăn">
+            <span>🍌</span>
+            <span id="bananaDisplay">0</span>
+          </div>
+        </div>
+        <div class="hud-row">
+          <div class="pill best-pill">
+            <span>🏆 Kỷ lục:</span>
+            <span id="bestDisplay">0 m</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="hud-actions">
+        <button class="icon-btn" id="soundBtn" title="Bật/Tắt âm thanh" aria-label="Âm thanh">🔊</button>
+        <button class="icon-btn" id="pauseBtn" title="Tạm dừng (P)" aria-label="Tạm dừng">⏸️</button>
+      </div>
+    </div>
+
+    <!-- Milestone Toast -->
+    <div class="toast" id="toast">🎉 100m! Tán rừng rậm!</div>
+
+    <!-- Bottom Left/Right Quick Controls -->
+    <div class="touch-hints hidden" id="touchHints">
+      <button class="touch-btn" id="btnLeft" aria-label="Nhảy sang trái">⬅️</button>
+      <button class="touch-btn" id="btnRight" aria-label="Nhảy sang phải">➡️</button>
+    </div>
+
+    <!-- Start Overlay -->
+    <div class="overlay" id="startOverlay">
+      <div class="card">
+        <div class="badge-emoji">🐒🌴</div>
+        <h1>KHỈ LEO CÂY</h1>
+        <p class="subtitle">Vượt qua cành gai, tổ ong, rắn rừng &amp; dừa gai rơi để leo cao nhất có thể!</p>
+
+        <div class="rules">
+          <div class="rule-item">
+            <span class="rule-icon">⚡</span>
+            <span>Nhấn <b>Trái / Phải</b> để nhảy qua lại 2 bên thân cây né chướng ngại vật.</span>
+          </div>
+          <div class="rule-item">
+            <span class="rule-icon">💥</span>
+            <span>Bắt đầu với <b>1 sinh mạng ❤️</b> — đụng chướng ngại vật khi hết mạng sẽ <b>THUA</b> ngay!</span>
+          </div>
+          <div class="rule-item">
+            <span class="rule-icon">🍌</span>
+            <span>Ăn <b>chuối vàng</b> trên đường leo để được <b>+1 sinh mạng ❤️</b>!</span>
+          </div>
+        </div>
+
+        <button class="primary-btn" id="startBtn">CHƠI NGAY</button>
+        <div class="controls-note">
+          Phím <span class="kbd">←</span> <span class="kbd">→</span> / <span class="kbd">A</span> <span class="kbd">D</span> / <span class="kbd">Space</span> hoặc chạm 2 bên màn hình
+        </div>
+      </div>
+    </div>
+
+    <!-- Pause Overlay -->
+    <div class="overlay hidden" id="pauseOverlay">
+      <div class="card">
+        <div class="badge-emoji">⏸️</div>
+        <h1>TẠM DỪNG</h1>
+        <p class="subtitle">Chú khỉ đang nghỉ lấy sức trên cành cây...</p>
+        <button class="primary-btn" id="resumeBtn">TIẾP TỤC LEO</button>
+        <div class="controls-note">Nhấn <span class="kbd">P</span> hoặc <span class="kbd">Esc</span> để tiếp tục</div>
+      </div>
+    </div>
+
+    <!-- Game Over Overlay -->
+    <div class="overlay hidden" id="gameOverOverlay">
+      <div class="card">
+        <div class="badge-emoji">💫🐒</div>
+        <h1>THUA RỒI!</h1>
+        <p class="subtitle" id="deathReason">Chú khỉ đã đụng phải chướng ngại vật!</p>
+        <div class="new-record hidden" id="newRecordBadge">🏆 KỶ LỤC MỚI!</div>
+
+        <div class="stats-grid">
+          <div class="stat-box highlight">
+            <div class="stat-label">Độ cao</div>
+            <div class="stat-value" id="finalHeight">0m</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Chuối ăn</div>
+            <div class="stat-value" id="finalBananas">0</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Kỷ lục</div>
+            <div class="stat-value" id="finalBest">0m</div>
+          </div>
+        </div>
+
+        <button class="primary-btn" id="restartBtn">CHƠI LẠI</button>
+        <div class="controls-note">Nhấn <span class="kbd">Space</span> hoặc <span class="kbd">Enter</span> để chơi lại nhanh</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (() => {
+      // ============================================================
+      // DOM ELEMENTS
+      // ============================================================
+      const canvas = document.getElementById('gameCanvas');
+      const ctx = canvas.getContext('2d');
+      const shell = document.getElementById('gameShell');
+
+      const livesPill = document.getElementById('livesPill');
+      const heartsWrap = document.getElementById('heartsWrap');
+      const livesCount = document.getElementById('livesCount');
+      const heightDisplay = document.getElementById('heightDisplay');
+      const bananaDisplay = document.getElementById('bananaDisplay');
+      const bestDisplay = document.getElementById('bestDisplay');
+
+      const soundBtn = document.getElementById('soundBtn');
+      const pauseBtn = document.getElementById('pauseBtn');
+      const toastEl = document.getElementById('toast');
+      const touchHints = document.getElementById('touchHints');
+      const btnLeft = document.getElementById('btnLeft');
+      const btnRight = document.getElementById('btnRight');
+
+      const startOverlay = document.getElementById('startOverlay');
+      const pauseOverlay = document.getElementById('pauseOverlay');
+      const gameOverOverlay = document.getElementById('gameOverOverlay');
+
+      const startBtn = document.getElementById('startBtn');
+      const resumeBtn = document.getElementById('resumeBtn');
+      const restartBtn = document.getElementById('restartBtn');
+
+      const deathReasonEl = document.getElementById('deathReason');
+      const newRecordBadge = document.getElementById('newRecordBadge');
+      const finalHeightEl = document.getElementById('finalHeight');
+      const finalBananasEl = document.getElementById('finalBananas');
+      const finalBestEl = document.getElementById('finalBest');
+
+      // ============================================================
+      // AUDIO ENGINE (Web Audio API — no external files)
+      // ============================================================
+      let audioCtx = null;
+      let soundEnabled = true;
+
+      function ensureAudio() {
+        if (!soundEnabled) return null;
+        if (!audioCtx) {
+          const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+          if (AudioContextClass) audioCtx = new AudioContextClass();
+        }
+        if (audioCtx && audioCtx.state === 'suspended') {
+          audioCtx.resume().catch(() => {});
+        }
+        return audioCtx;
+      }
+
+      function playTone(freqStart, freqEnd, duration, type = 'sine', volume = 0.14, delay = 0) {
+        const ac = ensureAudio();
+        if (!ac) return;
+        const now = ac.currentTime + delay;
+        const osc = ac.createOscillator();
+        const gain = ac.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freqStart, now);
+        osc.frequency.exponentialRampToValueAtTime(Math.max(20, freqEnd), now + duration);
+
+        gain.gain.setValueAtTime(0.001, now);
+        gain.gain.linearRampToValueAtTime(volume, now + 0.012);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+        osc.connect(gain);
+        gain.connect(ac.destination);
+        osc.start(now);
+        osc.stop(now + duration + 0.02);
+      }
+
+      const SFX = {
+        jump() {
+          playTone(260, 520, 0.09, 'triangle', 0.12);
+        },
+        banana() {
+          playTone(523.25, 523.25, 0.09, 'sine', 0.13, 0);
+          playTone(659.25, 659.25, 0.09, 'sine', 0.13, 0.06);
+          playTone(783.99, 783.99, 0.11, 'sine', 0.14, 0.12);
+          playTone(1046.5, 1046.5, 0.18, 'triangle', 0.15, 0.18);
+        },
+        hurt() {
+          playTone(220, 75, 0.22, 'sawtooth', 0.16, 0);
+          playTone(140, 55, 0.25, 'square', 0.1, 0.04);
+        },
+        gameOver() {
+          playTone(340, 260, 0.16, 'sawtooth', 0.14, 0);
+          playTone(250, 175, 0.18, 'sawtooth', 0.14, 0.15);
+          playTone(170, 70, 0.36, 'triangle', 0.18, 0.32);
+        },
+        milestone() {
+          playTone(440, 440, 0.1, 'triangle', 0.11, 0);
+          playTone(554.37, 554.37, 0.1, 'triangle', 0.11, 0.08);
+          playTone(659.25, 880, 0.22, 'triangle', 0.13, 0.16);
+        },
+        warning() {
+          playTone(880, 700, 0.07, 'sine', 0.07, 0);
+        }
+      };
+
+      // ============================================================
+      // CANVAS SIZING & LAYOUT METRICS
+      // ============================================================
+      let W = 480;
+      let H = 800;
+      let DPR = 1;
+
+      function getLayout() {
+        const trunkW = Math.max(78, Math.min(108, W * 0.21));
+        const trunkX = (W - trunkW) / 2;
+        const leftLaneX = trunkX - 44;
+        const rightLaneX = trunkX + trunkW + 44;
+        const monkeyY = H * 0.72;
+        return { trunkW, trunkX, leftLaneX, rightLaneX, monkeyY };
+      }
+
+      function resizeCanvas() {
+        const rect = shell.getBoundingClientRect();
+        W = Math.max(300, Math.floor(rect.width));
+        H = Math.max(480, Math.floor(rect.height));
+        DPR = Math.min(window.devicePixelRatio || 1, 2);
+        canvas.width = Math.floor(W * DPR);
+        canvas.height = Math.floor(H * DPR);
+        ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+      }
+
+      window.addEventListener('resize', resizeCanvas);
+      resizeCanvas();
+
+      // ============================================================
+      // GAME STATE
+      // ============================================================
+      const STORAGE_KEY = 'khi_leo_cay_best_v1';
+      let bestHeight = Number(localStorage.getItem(STORAGE_KEY) || 0);
+      bestDisplay.textContent = `${bestHeight} m`;
+
+      const STATE = {
+        MENU: 'menu',
+        PLAYING: 'playing',
+        PAUSED: 'paused',
+        GAMEOVER: 'gameover'
+      };
+
+      let gameState = STATE.MENU;
+      let time = 0;
+
+      // Run metrics
+      let lives = 1;
+      let bananasCollected = 0;
+      let distancePx = 0;
+      let heightMeters = 0;
+      let climbSpeed = 245; // px/sec
+      let nextMilestone = 100;
+      let lastHitCause = 'chướng ngại vật';
+
+      // Camera & juice
+      let shakeTime = 0;
+      let shakeIntensity = 0;
+      let flashColor = null;
+      let flashAlpha = 0;
+      let toastTimer = null;
+
+      // Monkey state
+      const monkey = {
+        side: -1, // -1 = left, +1 = right
+        x: 0,
+        y: 0,
+        targetX: 0,
+        jumpProgress: 1, // 0..1 when leaping across trunk
+        jumpFromX: 0,
+        climbPhase: 0,
+        invulnTime: 0,
+        happyTime: 0,
+        dead: false,
+        vy: 0,
+        vx: 0,
+        rot: 0
+      };
+
+      // World objects
+      let obstacles = [];
+      let bananas = [];
+      let particles = [];
+      let floatingTexts = [];
+      let bgMotes = [];
+      let bgTrees = [];
+      let trunkKnots = [];
+      let fallingWarnings = [];
+
+      // Spawners
+      let distSinceObstacle = 0;
+      let nextObstacleGap = 240;
+      let lastObstacleSide = 1;
+      let sameSideStreak = 0;
+      let distSinceBanana = 0;
+      let nextBananaGap = 380;
+      let fallingCooldown = 4.0;
+
+      // ============================================================
+      // BACKGROUND DECORATION INIT
+      // ============================================================
+      function initDecor() {
+        bgMotes = [];
+        for (let i = 0; i < 28; i++) {
+          bgMotes.push({
+            x: Math.random() * W,
+            y: Math.random() * H,
+            r: 1.5 + Math.random() * 2.8,
+            speed: 14 + Math.random() * 26,
+            drift: Math.random() * Math.PI * 2,
+            alpha: 0.25 + Math.random() * 0.5
+          });
+        }
+
+        bgTrees = [];
+        const positions = [0.06, 0.19, 0.81, 0.94];
+        positions.forEach((p, idx) => {
+          bgTrees.push({
+            xRatio: p,
+            width: 24 + (idx % 2) * 14,
+            depth: idx === 0 || idx === 3 ? 0.32 : 0.18,
+            leafOffset: Math.random() * 400
+          });
+        });
+
+        trunkKnots = [];
+        for (let i = 0; i < 14; i++) {
+          trunkKnots.push({
+            y: i * 95 + Math.random() * 40,
+            xOffset: (Math.random() - 0.5) * 0.55,
+            size: 6 + Math.random() * 7,
+            hasVine: Math.random() < 0.32
+          });
+        }
+      }
+
+      initDecor();
+
+      // ============================================================
+      // UI UPDATES
+      // ============================================================
+      function updateHUD(animType = null) {
+        heightDisplay.textContent = `${heightMeters} m`;
+        bananaDisplay.textContent = `${bananasCollected}`;
+        bestDisplay.textContent = `${Math.max(bestHeight, heightMeters)} m`;
+
+        const shownHearts = Math.min(lives, 5);
+        heartsWrap.textContent = lives > 0 ? '❤️'.repeat(shownHearts) : '💔';
+        livesCount.textContent = lives > 5 ? `+${lives - 5}` : `x${lives}`;
+
+        if (animType === 'pop') {
+          livesPill.classList.remove('hurt');
+          livesPill.classList.add('pop');
+          setTimeout(() => livesPill.classList.remove('pop'), 220);
+        } else if (animType === 'hurt') {
+          livesPill.classList.remove('pop');
+          livesPill.classList.add('hurt');
+          setTimeout(() => livesPill.classList.remove('hurt'), 260);
+        }
+      }
+
+      function showToast(message) {
+        toastEl.textContent = message;
+        toastEl.classList.add('show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => {
+          toastEl.classList.remove('show');
+        }, 2300);
+      }
+
+      // ============================================================
+      // PARTICLES & FLOATING TEXT
+      // ============================================================
+      function spawnBurst(x, y, colors, count = 14, speed = 150) {
+        for (let i = 0; i < count; i++) {
+          const angle = Math.random() * Math.PI * 2;
+          const spd = (0.35 + Math.random() * 0.85) * speed;
+          particles.push({
+            x,
+            y,
+            vx: Math.cos(angle) * spd,
+            vy: Math.sin(angle) * spd - 40,
+            r: 2.5 + Math.random() * 4,
+            color: colors[i % colors.length],
+            life: 0.45 + Math.random() * 0.4,
+            maxLife: 0.85,
+            gravity: 340
+          });
+        }
+      }
+
+      function spawnLeafChips(x, y, dir) {
+        for (let i = 0; i < 6; i++) {
+          particles.push({
+            x,
+            y: y + (Math.random() - 0.5) * 20,
+            vx: -dir * (40 + Math.random() * 90),
+            vy: -20 + (Math.random() - 0.5) * 90,
+            r: 2.5 + Math.random() * 2.5,
+            color: i % 2 === 0 ? '#a06b3b' : '#74c655',
+            life: 0.32 + Math.random() * 0.2,
+            maxLife: 0.52,
+            gravity: 260
+          });
+        }
+      }
+
+      function addFloatingText(x, y, text, color = '#ffe066', scale = 1) {
+        floatingTexts.push({
+          x,
+          y,
+          text,
+          color,
+          scale,
+          life: 1.0,
+          maxLife: 1.0
+        });
+      }
+
+      // ============================================================
+      // GAME FLOW
+      // ============================================================
+      function resetGame() {
+        const layout = getLayout();
+        lives = 1;
+        bananasCollected = 0;
+        distancePx = 0;
+        heightMeters = 0;
+        climbSpeed = 245;
+        nextMilestone = 100;
+        lastHitCause = 'chướng ngại vật';
+
+        shakeTime = 0;
+        flashAlpha = 0;
+
+        monkey.side = -1;
+        monkey.x = layout.leftLaneX;
+        monkey.targetX = layout.leftLaneX;
+        monkey.jumpFromX = layout.leftLaneX;
+        monkey.y = layout.monkeyY;
+        monkey.jumpProgress = 1;
+        monkey.climbPhase = 0;
+        monkey.invulnTime = 0;
+        monkey.happyTime = 0;
+        monkey.dead = false;
+        monkey.vx = 0;
+        monkey.vy = 0;
+        monkey.rot = 0;
+
+        obstacles = [];
+        bananas = [];
+        particles = [];
+        floatingTexts = [];
+        fallingWarnings = [];
+
+        distSinceObstacle = 0;
+        nextObstacleGap = 250;
+        lastObstacleSide = 1;
+        sameSideStreak = 0;
+        distSinceBanana = 120;
+        nextBananaGap = 360;
+        fallingCooldown = 4.5;
+
+        // Spawn an encouraging starter banana early so player immediately sees the mechanic!
+        bananas.push({
+          side: 1,
+          y: -140,
+          bobOffset: Math.random() * Math.PI * 2,
+          collected: false
+        });
+
+        updateHUD();
+      }
+
+      function startGame() {
+        ensureAudio();
+        resetGame();
+        gameState = STATE.PLAYING;
+        startOverlay.classList.add('hidden');
+        pauseOverlay.classList.add('hidden');
+        gameOverOverlay.classList.add('hidden');
+        touchHints.classList.remove('hidden');
+        pauseBtn.textContent = '⏸️';
+        SFX.jump();
+      }
+
+      function togglePause() {
+        if (gameState === STATE.PLAYING) {
+          gameState = STATE.PAUSED;
+          pauseOverlay.classList.remove('hidden');
+          pauseBtn.textContent = '▶️';
+        } else if (gameState === STATE.PAUSED) {
+          gameState = STATE.PLAYING;
+          pauseOverlay.classList.add('hidden');
+          pauseBtn.textContent = '⏸️';
+          lastFrame = performance.now();
+        }
+      }
+
+      function triggerGameOver() {
+        gameState = STATE.GAMEOVER;
+        monkey.dead = true;
+        monkey.vx = monkey.side * 120;
+        monkey.vy = -280;
+        touchHints.classList.add('hidden');
+        SFX.gameOver();
+
+        let isNewBest = false;
+        if (heightMeters > bestHeight) {
+          bestHeight = heightMeters;
+          localStorage.setItem(STORAGE_KEY, String(bestHeight));
+          isNewBest = true;
+        }
+        updateHUD();
+
+        deathReasonEl.textContent = `Chú khỉ đã va phải ${lastHitCause} khi hết sinh mạng!`;
+        finalHeightEl.textContent = `${heightMeters}m`;
+        finalBananasEl.textContent = `${bananasCollected}`;
+        finalBestEl.textContent = `${bestHeight}m`;
+        newRecordBadge.classList.toggle('hidden', !isNewBest);
+
+        setTimeout(() => {
+          if (gameState === STATE.GAMEOVER) {
+            gameOverOverlay.classList.remove('hidden');
+          }
+        }, 520);
+      }
+
+      // ============================================================
+      // CONTROLS
+      // ============================================================
+      function switchToSide(targetSide) {
+        if (gameState !== STATE.PLAYING || monkey.dead) return;
+        const layout = getLayout();
+        if (monkey.side === targetSide) return;
+
+        monkey.side = targetSide;
+        monkey.jumpFromX = monkey.x;
+        monkey.targetX = targetSide === -1 ? layout.leftLaneX : layout.rightLaneX;
+        monkey.jumpProgress = 0;
+
+        spawnLeafChips(
+          targetSide === -1 ? layout.trunkX + layout.trunkW : layout.trunkX,
+          monkey.y + 8,
+          targetSide
+        );
+        SFX.jump();
+      }
+
+      function toggleSide() {
+        switchToSide(monkey.side === -1 ? 1 : -1);
+      }
+
+      window.addEventListener('keydown', (e) => {
+        if (e.code === 'ArrowLeft' || e.code === 'KeyA') {
+          e.preventDefault();
+          if (gameState === STATE.PLAYING) switchToSide(-1);
+        } else if (e.code === 'ArrowRight' || e.code === 'KeyD') {
+          e.preventDefault();
+          if (gameState === STATE.PLAYING) switchToSide(1);
+        } else if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') {
+          e.preventDefault();
+          if (gameState === STATE.PLAYING) {
+            toggleSide();
+          } else if (gameState === STATE.MENU) {
+            startGame();
+          } else if (gameState === STATE.GAMEOVER && !gameOverOverlay.classList.contains('hidden')) {
+            startGame();
+          }
+        } else if (e.code === 'Enter') {
+          if (gameState === STATE.MENU || (gameState === STATE.GAMEOVER && !gameOverOverlay.classList.contains('hidden'))) {
+            startGame();
+          }
+        } else if (e.code === 'KeyP' || e.code === 'Escape') {
+          if (gameState === STATE.PLAYING || gameState === STATE.PAUSED) {
+            togglePause();
+          }
+        } else if (e.code === 'KeyR') {
+          if (gameState === STATE.GAMEOVER || gameState === STATE.PAUSED) {
+            startGame();
+          }
+        }
+      });
+
+      // Click / Tap anywhere on canvas (left half = left, right half = right)
+      canvas.addEventListener('pointerdown', (e) => {
+        if (gameState !== STATE.PLAYING) return;
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        switchToSide(x < rect.width / 2 ? -1 : 1);
+      });
+
+      btnLeft.addEventListener('pointerdown', (e) => {
+        e.stopPropagation();
+        switchToSide(-1);
+      });
+
+      btnRight.addEventListener('pointerdown', (e) => {
+        e.stopPropagation();
+        switchToSide(1);
+      });
+
+      startBtn.addEventListener('click', startGame);
+      resumeBtn.addEventListener('click', togglePause);
+      restartBtn.addEventListener('click', startGame);
+      pauseBtn.addEventListener('click', () => {
+        if (gameState === STATE.PLAYING || gameState === STATE.PAUSED) togglePause();
+      });
+
+      soundBtn.addEventListener('click', () => {
+        soundEnabled = !soundEnabled;
+        soundBtn.textContent = soundEnabled ? '🔊' : '🔇';
+        if (soundEnabled) SFX.jump();
+      });
+
+      // ============================================================
+      // SPAWNING LOGIC (Guaranteed Fair & Fun)
+      // ============================================================
+      function pickObstacleType() {
+        const pool = ['branch', 'branch'];
+        if (heightMeters >= 20) pool.push('beehive', 'beehive');
+        if (heightMeters >= 55) pool.push('snake', 'snake');
+        return pool[Math.floor(Math.random() * pool.length)];
+      }
+
+      function spawnStaticObstacle() {
+        // Choose side while avoiding monotonous streaks
+        let side;
+        if (sameSideStreak >= 2) {
+          side = -lastObstacleSide;
+        } else {
+          side = Math.random() < 0.56 ? -lastObstacleSide : lastObstacleSide;
+        }
+
+        if (side === lastObstacleSide) {
+          sameSideStreak++;
+        } else {
+          sameSideStreak = 1;
+          lastObstacleSide = side;
+        }
+
+        const type = pickObstacleType();
+        const obs = {
+          type,
+          side,
+          y: -75,
+          falling: false,
+          extraSpeed: 0,
+          phase: Math.random() * Math.PI * 2,
+          hit: false
+        };
+        obstacles.push(obs);
+
+        // Sometimes place a tempting banana on the OPPOSITE side slightly offset!
+        if (Math.random() < 0.24 && distSinceBanana > 240) {
+          const safeY = obs.y - 10;
+          if (!isNearObstacle(-side, safeY, 95)) {
+            bananas.push({
+              side: -side,
+              y: safeY,
+              bobOffset: Math.random() * Math.PI * 2,
+              collected: false
+            });
+            distSinceBanana = 0;
+            nextBananaGap = 420 + Math.random() * 240;
+          }
+        }
+      }
+
+      function isNearObstacle(side, y, minDist) {
+        for (const o of obstacles) {
+          if (o.side === side && Math.abs(o.y - y) < minDist) return true;
+        }
+        return false;
+      }
+
+      function spawnBanana() {
+        // Pick a side that has no obstacle near y = -60
+        const preferred = Math.random() < 0.5 ? -1 : 1;
+        let side = preferred;
+        if (isNearObstacle(side, -60, 115)) {
+          side = -side;
+          if (isNearObstacle(side, -60, 115)) {
+            return false; // try slightly later
+          }
+        }
+        bananas.push({
+          side,
+          y: -60,
+          bobOffset: Math.random() * Math.PI * 2,
+          collected: false
+        });
+        return true;
+      }
+
+      function spawnFallingFruit() {
+        // Pick a side that won't trap the player alongside a static obstacle at arrival
+        const side = Math.random() < 0.5 ? -1 : 1;
+        // Check if opposite lane has an obstacle in the upper zone that would align
+        const conflict = obstacles.some(o => o.side === -side && o.y > -160 && o.y < 220);
+        const chosenSide = conflict ? -side : side;
+
+        fallingWarnings.push({
+          side: chosenSide,
+          timer: 0.95,
+          maxTimer: 0.95
+        });
+        SFX.warning();
+      }
+
+      // ============================================================
+      // UPDATE LOOP
+      // ============================================================
+      const OBSTACLE_NAMES = {
+        branch: 'cành gai sắc nhọn',
+        beehive: 'tổ ong rừng',
+        snake: 'rắn xanh trên cây',
+        coconut: 'quả dừa gai rơi'
+      };
+
+      function update(dt) {
+        time += dt;
+        const layout = getLayout();
+
+        // Ambient floating motes always animate
+        for (const m of bgMotes) {
+          m.y += (gameState === STATE.PLAYING ? climbSpeed * 0.25 + m.speed : m.speed) * dt;
+          m.x += Math.sin(time * 1.4 + m.drift) * 14 * dt;
+          if (m.y > H + 12) {
+            m.y = -12;
+            m.x = Math.random() * W;
+          }
+        }
+
+        // Particles update even during game over fall
+        for (let i = particles.length - 1; i >= 0; i--) {
+          const p = particles[i];
+          p.life -= dt;
+          if (p.life <= 0) {
+            particles.splice(i, 1);
+            continue;
+          }
+          p.vy += p.gravity * dt;
+          p.x += p.vx * dt;
+          p.y += p.vy * dt;
+        }
+
+        for (let i = floatingTexts.length - 1; i >= 0; i--) {
+          const ft = floatingTexts[i];
+          ft.life -= dt;
+          ft.y -= 55 * dt;
+          if (ft.life <= 0) floatingTexts.splice(i, 1);
+        }
+
+        if (shakeTime > 0) shakeTime = Math.max(0, shakeTime - dt);
+        if (flashAlpha > 0) flashAlpha = Math.max(0, flashAlpha - dt * 2.4);
+
+        // Menu idle animation
+        if (gameState === STATE.MENU) {
+          monkey.x = layout.leftLaneX;
+          monkey.y = layout.monkeyY + Math.sin(time * 3) * 4;
+          monkey.climbPhase += dt * 4;
+          return;
+        }
+
+        // GameOver tumble animation
+        if (gameState === STATE.GAMEOVER) {
+          monkey.vy += 900 * dt;
+          monkey.x += monkey.vx * dt;
+          monkey.y += monkey.vy * dt;
+          monkey.rot += monkey.side * 7.5 * dt;
+          return;
+        }
+
+        if (gameState !== STATE.PLAYING) return;
+
+        // Progressive speed scaling (smooth & exciting)
+        const targetSpeed = Math.min(540, 245 + heightMeters * 1.05);
+        climbSpeed += (targetSpeed - climbSpeed) * Math.min(1, dt * 3);
+
+        const moveDist = climbSpeed * dt;
+        distancePx += moveDist;
+        const newHeight = Math.floor(distancePx / 26);
+        if (newHeight !== heightMeters) {
+          heightMeters = newHeight;
+          heightDisplay.textContent = `${heightMeters} m`;
+          if (heightMeters > bestHeight) {
+            bestDisplay.textContent = `${heightMeters} m`;
+          }
+        }
+
+        // Milestones every 100m
+        if (heightMeters >= nextMilestone) {
+          const zoneNames = [
+            'Tán rừng rậm!',
+            'Đỉnh cây cổ thụ!',
+            'Chạm tầng mây!',
+            'Hoàng hôn rực rỡ!',
+            'Huyền thoại rừng xanh!'
+          ];
+          const label = zoneNames[Math.min(zoneNames.length - 1, Math.floor(nextMilestone / 100) - 1)];
+          showToast(`🎉 ${nextMilestone}m! ${label}`);
+          SFX.milestone();
+          nextMilestone += 100;
+        }
+
+        // Scroll trunk knots
+        for (const knot of trunkKnots) {
+          knot.y += moveDist;
+          if (knot.y > H + 70) {
+            knot.y = -70 - Math.random() * 40;
+            knot.xOffset = (Math.random() - 0.5) * 0.55;
+            knot.hasVine = Math.random() < 0.32;
+          }
+        }
+
+        // Monkey movement & jump interpolation
+        monkey.y = layout.monkeyY;
+        monkey.targetX = monkey.side === -1 ? layout.leftLaneX : layout.rightLaneX;
+        if (monkey.jumpProgress < 1) {
+          monkey.jumpProgress = Math.min(1, monkey.jumpProgress + dt * 9.5);
+          // Ease out back slightly for snappy leap
+          const t = monkey.jumpProgress;
+          const ease = 1 - Math.pow(1 - t, 3);
+          monkey.x = monkey.jumpFromX + (monkey.targetX - monkey.jumpFromX) * ease;
+        } else {
+          monkey.x = monkey.targetX;
+        }
+
+        monkey.climbPhase += dt * (climbSpeed / 24);
+        if (monkey.invulnTime > 0) monkey.invulnTime = Math.max(0, monkey.invulnTime - dt);
+        if (monkey.happyTime > 0) monkey.happyTime = Math.max(0, monkey.happyTime - dt);
+
+        // Spawn static obstacles with guaranteed fair spacing
+        distSinceObstacle += moveDist;
+        if (distSinceObstacle >= nextObstacleGap) {
+          spawnStaticObstacle();
+          distSinceObstacle = 0;
+          // Minimum gap scales with speed so player always has fair reaction time
+          const minGap = Math.max(190, climbSpeed * 0.52);
+          const variance = Math.max(70, 155 - heightMeters * 0.25);
+          nextObstacleGap = minGap + Math.random() * variance;
+        }
+
+        // Spawn golden bananas
+        distSinceBanana += moveDist;
+        if (distSinceBanana >= nextBananaGap) {
+          if (spawnBanana()) {
+            distSinceBanana = 0;
+            nextBananaGap = 450 + Math.random() * 320;
+          }
+        }
+
+        // Spawn falling spiky coconuts after 90m
+        if (heightMeters >= 90) {
+          fallingCooldown -= dt;
+          if (fallingCooldown <= 0) {
+            spawnFallingFruit();
+            fallingCooldown = Math.max(2.3, 5.4 - heightMeters * 0.008) + Math.random() * 2.0;
+          }
+        }
+
+        // Update falling fruit warnings
+        for (let i = fallingWarnings.length - 1; i >= 0; i--) {
+          const w = fallingWarnings[i];
+          w.timer -= dt;
+          if (w.timer <= 0) {
+            obstacles.push({
+              type: 'coconut',
+              side: w.side,
+              y: -45,
+              falling: true,
+              extraSpeed: 175 + Math.min(120, heightMeters * 0.25),
+              phase: 0,
+              hit: false
+            });
+            fallingWarnings.splice(i, 1);
+          }
+        }
+
+        // Update & check bananas
+        const monkeyHitR = 24;
+        for (let i = bananas.length - 1; i >= 0; i--) {
+          const b = bananas[i];
+          b.y += moveDist;
+          if (b.y > H + 70) {
+            bananas.splice(i, 1);
+            continue;
+          }
+
+          const bx = b.side === -1 ? layout.leftLaneX : layout.rightLaneX;
+          const by = b.y + Math.sin(time * 5 + b.bobOffset) * 5;
+          const dx = monkey.x - bx;
+          const dy = monkey.y - by;
+
+          if (!b.collected && dx * dx + dy * dy < (monkeyHitR + 25) * (monkeyHitR + 25)) {
+            b.collected = true;
+            bananas.splice(i, 1);
+
+            lives += 1;
+            bananasCollected += 1;
+            monkey.happyTime = 0.65;
+            updateHUD('pop');
+            SFX.banana();
+
+            spawnBurst(bx, by, ['#fff3bf', '#ffd43b', '#fab005', '#69db7c'], 18, 175);
+            addFloatingText(bx, by - 14, '+1 ❤️', '#ffe066', 1.2);
+          }
+        }
+
+        // Update & check obstacles
+        for (let i = obstacles.length - 1; i >= 0; i--) {
+          const o = obstacles[i];
+          o.y += (climbSpeed + o.extraSpeed) * dt;
+          o.phase += dt * 6;
+
+          if (o.y > H + 110) {
+            obstacles.splice(i, 1);
+            continue;
+          }
+
+          if (o.hit || monkey.invulnTime > 0) continue;
+
+          // Forgiving hitbox for each obstacle type
+          const ox = o.side === -1 ? layout.trunkX - 42 : layout.trunkX + layout.trunkW + 42;
+          const oy = o.y;
+          const hitW = o.type === 'branch' ? 38 : o.type === 'coconut' ? 22 : 30;
+          const hitH = o.type === 'branch' ? 20 : o.type === 'coconut' ? 22 : 24;
+
+          const dx = Math.abs(monkey.x - ox);
+          const dy = Math.abs(monkey.y - oy);
+
+          if (dx < hitW + 17 && dy < hitH + 20) {
+            o.hit = true;
+            lastHitCause = OBSTACLE_NAMES[o.type] || 'chướng ngại vật';
+            lives -= 1;
+
+            shakeTime = 0.34;
+            shakeIntensity = lives <= 0 ? 12 : 8;
+            flashColor = '#ff3b3b';
+            flashAlpha = 0.42;
+
+            spawnBurst(monkey.x, monkey.y, ['#ff6b6b', '#ffa94d', '#fff3bf'], 20, 210);
+            updateHUD('hurt');
+
+            if (lives <= 0) {
+              addFloatingText(monkey.x, monkey.y - 24, '💔 HẾT MẠNG!', '#ff8787', 1.2);
+              triggerGameOver();
+              return;
+            } else {
+              monkey.invulnTime = 1.6;
+              SFX.hurt();
+              addFloatingText(monkey.x, monkey.y - 24, '-1 ❤️', '#ff8787', 1.2);
+            }
+          }
+        }
+      }
+
+      // ============================================================
+      // RENDERING HELPERS
+      // ============================================================
+      function lerpColor(a, b, t) {
+        const clamped = Math.max(0, Math.min(1, t));
+        const r = Math.round(a[0] + (b[0] - a[0]) * clamped);
+        const g = Math.round(a[1] + (b[1] - a[1]) * clamped);
+        const bl = Math.round(a[2] + (b[2] - a[2]) * clamped);
+        return `rgb(${r},${g},${bl})`;
+      }
+
+      function drawBackground() {
+        // Sky transitions subtly with height: deep jungle -> sunlit canopy -> high sky -> golden sunset
+        const alt = Math.min(1, heightMeters / 350);
+        const topColor = alt < 0.5
+          ? lerpColor([18, 66, 44], [38, 128, 118], alt * 2)
+          : lerpColor([38, 128, 118], [94, 62, 118], (alt - 0.5) * 2);
+        const botColor = alt < 0.5
+          ? lerpColor([42, 110, 58], [116, 184, 110], alt * 2)
+          : lerpColor([116, 184, 110], [238, 152, 92], (alt - 0.5) * 2);
+
+        const skyGrad = ctx.createLinearGradient(0, 0, 0, H);
+        skyGrad.addColorStop(0, topColor);
+        skyGrad.addColorStop(1, botColor);
+        ctx.fillStyle = skyGrad;
+        ctx.fillRect(0, 0, W, H);
+
+        // Diagonal warm sunbeams
+        ctx.save();
+        ctx.globalAlpha = 0.08;
+        ctx.fillStyle = '#fff9db';
+        for (let i = 0; i < 3; i++) {
+          const sx = W * (0.12 + i * 0.34) + Math.sin(time * 0.3 + i) * 18;
+          ctx.beginPath();
+          ctx.moveTo(sx, 0);
+          ctx.lineTo(sx + 68, 0);
+          ctx.lineTo(sx - 90, H);
+          ctx.lineTo(sx - 165, H);
+          ctx.closePath();
+          ctx.fill();
+        }
+        ctx.restore();
+
+        // Parallax distant jungle trunks & leafy canopy silhouettes
+        for (const t of bgTrees) {
+          const x = W * t.xRatio;
+          const scrollY = (distancePx * t.depth + t.leafOffset) % 240;
+          ctx.save();
+          ctx.fillStyle = t.depth > 0.25 ? 'rgba(13, 44, 24, 0.38)' : 'rgba(18, 56, 30, 0.24)';
+          ctx.fillRect(x - t.width / 2, 0, t.width, H);
+
+          // Repeating distant fronds
+          for (let y = -120 + scrollY; y < H + 120; y += 240) {
+            ctx.beginPath();
+            ctx.ellipse(x + t.width * 0.7, y, 42, 16, 0.3, 0, Math.PI * 2);
+            ctx.ellipse(x - t.width * 0.7, y + 60, 40, 15, -0.35, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          ctx.restore();
+        }
+
+        // Floating sunlight pollen / firefly motes
+        for (const m of bgMotes) {
+          ctx.save();
+          ctx.globalAlpha = m.alpha;
+          ctx.fillStyle = '#fff3bf';
+          ctx.beginPath();
+          ctx.arc(m.x, m.y, m.r, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+      }
+
+      function drawTrunk(layout) {
+        const { trunkX, trunkW } = layout;
+
+        // Soft drop shadow behind trunk
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.22)';
+        ctx.fillRect(trunkX - 6, 0, trunkW + 12, H);
+
+        // Main cylindrical wood gradient
+        const grad = ctx.createLinearGradient(trunkX, 0, trunkX + trunkW, 0);
+        grad.addColorStop(0, '#4f2c14');
+        grad.addColorStop(0.22, '#8b5127');
+        grad.addColorStop(0.48, '#a46535');
+        grad.addColorStop(0.78, '#73401c');
+        grad.addColorStop(1, '#3d200d');
+
+        ctx.fillStyle = grad;
+        ctx.fillRect(trunkX, 0, trunkW, H);
+
+        // Scrolling bark vertical striations
+        const grainStep = 64;
+        const offset = distancePx % grainStep;
+        ctx.strokeStyle = 'rgba(42, 20, 7, 0.32)';
+        ctx.lineWidth = 2;
+        for (let i = 1; i <= 4; i++) {
+          const gx = trunkX + (trunkW / 5) * i;
+          ctx.beginPath();
+          for (let y = -grainStep + offset; y < H + grainStep; y += grainStep) {
+            ctx.moveTo(gx, y);
+            ctx.lineTo(gx + Math.sin(y * 0.02 + i) * 2.5, y + grainStep * 0.65);
+          }
+          ctx.stroke();
+        }
+
+        // Knots and decorative wrapping vines
+        for (const k of trunkKnots) {
+          const kx = trunkX + trunkW * (0.5 + k.xOffset);
+          ctx.fillStyle = 'rgba(48, 23, 8, 0.45)';
+          ctx.beginPath();
+          ctx.ellipse(kx, k.y, k.size * 0.75, k.size * 1.2, 0, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.strokeStyle = 'rgba(168, 108, 60, 0.35)';
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.ellipse(kx, k.y, k.size * 1.05, k.size * 1.55, 0, 0, Math.PI * 2);
+          ctx.stroke();
+
+          if (k.hasVine) {
+            ctx.strokeStyle = '#2f9e44';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.moveTo(trunkX, k.y - 18);
+            ctx.quadraticCurveTo(trunkX + trunkW * 0.5, k.y + 8, trunkX + trunkW, k.y + 18);
+            ctx.stroke();
+
+            // Tiny vine leaves
+            ctx.fillStyle = '#51cf66';
+            ctx.beginPath();
+            ctx.ellipse(trunkX + trunkW * 0.35, k.y - 3, 7, 4, -0.5, 0, Math.PI * 2);
+            ctx.ellipse(trunkX + trunkW * 0.72, k.y + 10, 7, 4, 0.4, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+
+        // Crisp dark bark rim lines
+        ctx.fillStyle = 'rgba(30, 14, 5, 0.5)';
+        ctx.fillRect(trunkX, 0, 3, H);
+        ctx.fillRect(trunkX + trunkW - 3, 0, 3, H);
+      }
+
+      function drawObstacle(o, layout) {
+        const { trunkX, trunkW } = layout;
+        const baseX = o.side === -1 ? trunkX : trunkX + trunkW;
+        const dir = o.side; // -1 left, +1 right
+
+        ctx.save();
+        ctx.translate(baseX, o.y);
+
+        if (o.type === 'branch') {
+          // Jagged thorny branch jutting from trunk
+          ctx.fillStyle = '#5c3416';
+          ctx.strokeStyle = '#2e1607';
+          ctx.lineWidth = 2.5;
+          ctx.beginPath();
+          ctx.moveTo(0, -13);
+          ctx.quadraticCurveTo(dir * 38, -11, dir * 82, -4);
+          ctx.lineTo(dir * 86, 4);
+          ctx.quadraticCurveTo(dir * 38, 12, 0, 14);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+
+          // Highlight strip
+          ctx.strokeStyle = 'rgba(186, 125, 71, 0.55)';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(dir * 4, -7);
+          ctx.lineTo(dir * 72, -2);
+          ctx.stroke();
+
+          // Crimson sharp thorns along top and bottom
+          const thorns = [
+            { x: 22, y: -10, dy: -12 },
+            { x: 48, y: -7, dy: -13 },
+            { x: 70, y: -4, dy: -10 },
+            { x: 34, y: 10, dy: 11 },
+            { x: 60, y: 7, dy: 11 }
+          ];
+          for (const th of thorns) {
+            ctx.fillStyle = '#e03131';
+            ctx.strokeStyle = '#4a0b0b';
+            ctx.lineWidth = 1.4;
+            ctx.beginPath();
+            ctx.moveTo(dir * (th.x - 5), th.y);
+            ctx.lineTo(dir * (th.x + 2), th.y + th.dy);
+            ctx.lineTo(dir * (th.x + 7), th.y);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+          }
+
+          // Small mossy leaf at tip
+          ctx.fillStyle = '#40c057';
+          ctx.beginPath();
+          ctx.ellipse(dir * 84, 0, 8, 4.5, dir * 0.25, 0, Math.PI * 2);
+          ctx.fill();
+        } else if (o.type === 'beehive') {
+          // Supporting twig
+          ctx.strokeStyle = '#5c3416';
+          ctx.lineWidth = 6;
+          ctx.lineCap = 'round';
+          ctx.beginPath();
+          ctx.moveTo(0, -20);
+          ctx.lineTo(dir * 52, -16);
+          ctx.stroke();
+
+          const sway = Math.sin(o.phase * 0.65) * 0.08;
+          ctx.translate(dir * 44, -14);
+          ctx.rotate(sway);
+
+          // Layered honeycomb hive
+          const rings = [
+            { y: 6, rx: 14, ry: 7 },
+            { y: 14, rx: 21, ry: 9 },
+            { y: 23, rx: 23, ry: 9 },
+            { y: 31, rx: 17, ry: 8 },
+            { y: 38, rx: 10, ry: 5 }
+          ];
+          for (const r of rings) {
+            ctx.fillStyle = '#fcc419';
+            ctx.strokeStyle = '#a65c00';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.ellipse(0, r.y, r.rx, r.ry, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+          }
+
+          // Dark hive hole
+          ctx.fillStyle = '#3b1e00';
+          ctx.beginPath();
+          ctx.ellipse(dir * 4, 24, 5, 6, 0, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Animated buzzing bees!
+          for (let b = 0; b < 2; b++) {
+            const ang = o.phase * (b === 0 ? 1.5 : -1.8) + b * 2.5;
+            const bx = Math.cos(ang) * 28;
+            const by = 22 + Math.sin(ang * 1.4) * 16;
+            // Wings
+            ctx.fillStyle = 'rgba(255,255,255,0.85)';
+            ctx.beginPath();
+            ctx.ellipse(bx - 2, by - 4, 4, 2.5, -0.4, 0, Math.PI * 2);
+            ctx.ellipse(bx + 2, by - 4, 4, 2.5, 0.4, 0, Math.PI * 2);
+            ctx.fill();
+            // Body
+            ctx.fillStyle = '#ffd43b';
+            ctx.beginPath();
+            ctx.ellipse(bx, by, 5.5, 3.8, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#1f1f1f';
+            ctx.fillRect(bx - 1.5, by - 3.5, 2.2, 7);
+          }
+        } else if (o.type === 'snake') {
+          // Emerald viper poking out from bark hollow
+          const wiggle = Math.sin(o.phase * 1.1) * 5;
+
+          // Bark hollow
+          ctx.fillStyle = '#291306';
+          ctx.beginPath();
+          ctx.ellipse(0, 0, 6, 14, 0, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Sinuous snake body
+          ctx.strokeStyle = '#2b8a3e';
+          ctx.lineWidth = 14;
+          ctx.lineCap = 'round';
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.bezierCurveTo(dir * 22, -16 + wiggle, dir * 42, 16 - wiggle, dir * 64, -2 + wiggle * 0.6);
+          ctx.stroke();
+
+          // Lime scale stripe
+          ctx.strokeStyle = '#8ce99a';
+          ctx.lineWidth = 5;
+          ctx.setLineDash([6, 6]);
+          ctx.beginPath();
+          ctx.moveTo(dir * 6, 0);
+          ctx.bezierCurveTo(dir * 22, -16 + wiggle, dir * 42, 16 - wiggle, dir * 60, -2 + wiggle * 0.6);
+          ctx.stroke();
+          ctx.setLineDash([]);
+
+          // Snake head
+          const hx = dir * 66;
+          const hy = -2 + wiggle * 0.6;
+          ctx.fillStyle = '#2f9e44';
+          ctx.strokeStyle = '#13401c';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.ellipse(hx, hy, 12, 8.5, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+
+          // Flickering forked red tongue
+          if (Math.sin(o.phase * 1.7) > -0.2) {
+            ctx.strokeStyle = '#ff4d4d';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(hx + dir * 11, hy + 1);
+            ctx.lineTo(hx + dir * 21, hy + 1);
+            ctx.lineTo(hx + dir * 26, hy - 3);
+            ctx.moveTo(hx + dir * 21, hy + 1);
+            ctx.lineTo(hx + dir * 26, hy + 5);
+            ctx.stroke();
+          }
+
+          // Yellow angry eye
+          ctx.fillStyle = '#ffe066';
+          ctx.beginPath();
+          ctx.arc(hx + dir * 3, hy - 3, 3.2, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = '#111';
+          ctx.fillRect(hx + dir * 3 - 0.8, hy - 5.5, 1.6, 5);
+        } else if (o.type === 'coconut') {
+          // Falling spiky tropical fruit / durian-coconut
+          const cx = dir * 44;
+          ctx.translate(cx, 0);
+
+          // Speed lines behind falling fruit
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(-10, -26);
+          ctx.lineTo(-10, -48);
+          ctx.moveTo(10, -22);
+          ctx.lineTo(10, -44);
+          ctx.stroke();
+
+          ctx.rotate(o.phase * dir * 0.9);
+
+          // Spikes around circle
+          const spikeCount = 10;
+          ctx.fillStyle = '#5c940d';
+          ctx.strokeStyle = '#2b4504';
+          ctx.lineWidth = 1.6;
+          ctx.beginPath();
+          for (let s = 0; s < spikeCount * 2; s++) {
+            const ang = (s / (spikeCount * 2)) * Math.PI * 2;
+            const r = s % 2 === 0 ? 25 : 17;
+            const px = Math.cos(ang) * r;
+            const py = Math.sin(ang) * r;
+            if (s === 0) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+          }
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+
+          // Inner body
+          ctx.fillStyle = '#74b816';
+          ctx.beginPath();
+          ctx.arc(0, 0, 14, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Specular dot
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.35)';
+          ctx.beginPath();
+          ctx.arc(-5, -5, 4, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        ctx.restore();
+      }
+
+      function drawBanana(b, layout) {
+        const bx = b.side === -1 ? layout.leftLaneX : layout.rightLaneX;
+        const by = b.y + Math.sin(time * 5 + b.bobOffset) * 5;
+
+        ctx.save();
+        ctx.translate(bx, by);
+
+        // Warm golden halo so player instantly spots the extra life!
+        const pulse = 1 + Math.sin(time * 6 + b.bobOffset) * 0.1;
+        const halo = ctx.createRadialGradient(0, 0, 4, 0, 0, 32 * pulse);
+        halo.addColorStop(0, 'rgba(255, 232, 102, 0.65)');
+        halo.addColorStop(0.6, 'rgba(255, 212, 59, 0.2)');
+        halo.addColorStop(1, 'rgba(255, 212, 59, 0)');
+        ctx.fillStyle = halo;
+        ctx.beginPath();
+        ctx.arc(0, 0, 32 * pulse, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.rotate(Math.sin(time * 3 + b.bobOffset) * 0.14);
+
+        // Draw a cute bunch of 2 overlapping curved golden bananas
+        for (let idx = 0; idx < 2; idx++) {
+          ctx.save();
+          ctx.translate(idx === 0 ? -4 : 4, idx === 0 ? 1 : -1);
+          ctx.rotate(idx === 0 ? -0.18 : 0.16);
+
+          ctx.fillStyle = idx === 0 ? '#fab005' : '#ffe066';
+          ctx.strokeStyle = '#9c5200';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(-10, -14);
+          ctx.quadraticCurveTo(14, -4, 8, 16);
+          ctx.quadraticCurveTo(2, 18, 0, 14);
+          ctx.quadraticCurveTo(2, -1, -12, -10);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+
+          // Highlight gleam
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.75)';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(-4, -8);
+          ctx.quadraticCurveTo(5, 0, 3, 9);
+          ctx.stroke();
+
+          // Brown banana tip
+          ctx.fillStyle = '#5c3416';
+          ctx.beginPath();
+          ctx.arc(4, 15, 2.3, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+
+        // Top stem
+        ctx.fillStyle = '#663c14';
+        ctx.fillRect(-10, -17, 7, 5);
+
+        // Tiny "+❤️" shimmer sparkle
+        const sp = Math.sin(time * 7 + b.bobOffset);
+        if (sp > 0.2) {
+          ctx.fillStyle = '#fff';
+          ctx.beginPath();
+          ctx.arc(13, -12, 2.5 * sp, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        ctx.restore();
+      }
+
+      function drawFallingWarnings(layout) {
+        for (const w of fallingWarnings) {
+          const wx = w.side === -1 ? layout.leftLaneX : layout.rightLaneX;
+          const blink = Math.sin(time * 28) > 0;
+          ctx.save();
+          ctx.translate(wx, 94);
+          ctx.globalAlpha = blink ? 0.96 : 0.45;
+
+          ctx.fillStyle = '#e03131';
+          ctx.strokeStyle = '#fff3bf';
+          ctx.lineWidth = 2.5;
+          ctx.beginPath();
+          ctx.moveTo(0, -18);
+          ctx.lineTo(18, 14);
+          ctx.lineTo(-18, 14);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillStyle = '#fff';
+          ctx.font = '900 18px system-ui, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText('!', 0, 3);
+          ctx.restore();
+        }
+      }
+
+      function drawMonkey() {
+        // Blink when invulnerable after losing a heart
+        if (monkey.invulnTime > 0 && Math.floor(time * 18) % 2 === 0 && !monkey.dead) {
+          ctx.save();
+          ctx.globalAlpha = 0.42;
+        } else {
+          ctx.save();
+        }
+
+        const dir = monkey.side; // -1 = clinging to left (facing right toward trunk), +1 = clinging to right (facing left)
+        const facing = -dir; // +1 faces right, -1 faces left
+
+        // Jump arc & squash/stretch
+        const jumpArc = monkey.jumpProgress < 1 ? Math.sin(monkey.jumpProgress * Math.PI) : 0;
+        const drawX = monkey.x;
+        const drawY = monkey.y - jumpArc * 22;
+
+        ctx.translate(drawX, drawY);
+        if (monkey.dead) {
+          ctx.rotate(monkey.rot);
+        } else if (monkey.jumpProgress < 1) {
+          ctx.rotate(facing * jumpArc * 0.26);
+        }
+
+        // Invulnerability golden shield ring
+        if (monkey.invulnTime > 0 && !monkey.dead) {
+          ctx.strokeStyle = 'rgba(255, 224, 102, 0.78)';
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.arc(0, 0, 36 + Math.sin(time * 16) * 2, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+
+        const armSwing = Math.sin(monkey.climbPhase) * 8;
+        const legSwing = Math.cos(monkey.climbPhase) * 7;
+
+        // Curvy animated tail (behind body, waving outward)
+        ctx.strokeStyle = '#6f3e1d';
+        ctx.lineWidth = 6;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(-facing * 8, 12);
+        ctx.bezierCurveTo(
+          -facing * 32, 18 + Math.sin(time * 7) * 6,
+          -facing * 34, -8 + Math.cos(time * 6) * 6,
+          -facing * 20, -14 + Math.sin(time * 7) * 5
+        );
+        ctx.stroke();
+
+        // Back arm reaching toward trunk
+        ctx.strokeStyle = '#683819';
+        ctx.lineWidth = 7;
+        ctx.beginPath();
+        ctx.moveTo(facing * 5, -2);
+        ctx.lineTo(facing * 24, -10 - armSwing);
+        ctx.stroke();
+
+        // Back leg gripping trunk
+        ctx.beginPath();
+        ctx.moveTo(facing * 4, 14);
+        ctx.lineTo(facing * 22, 16 + legSwing);
+        ctx.stroke();
+
+        // Body
+        ctx.fillStyle = '#8b4e24';
+        ctx.strokeStyle = '#3d1e0a';
+        ctx.lineWidth = 2.2;
+        ctx.beginPath();
+        ctx.ellipse(0, 6, 15, 19, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        // Tan belly patch
+        ctx.fillStyle = '#f2cfa0';
+        ctx.beginPath();
+        ctx.ellipse(facing * 3, 8, 9, 12, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Front leg gripping trunk
+        ctx.strokeStyle = '#8b4e24';
+        ctx.lineWidth = 7.5;
+        ctx.beginPath();
+        ctx.moveTo(facing * 2, 16);
+        ctx.lineTo(facing * 23, 21 - legSwing);
+        ctx.stroke();
+        // Foot paw
+        ctx.fillStyle = '#f2cfa0';
+        ctx.beginPath();
+        ctx.arc(facing * 24, 21 - legSwing, 4.2, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Ears
+        for (const ex of [-14, 14]) {
+          ctx.fillStyle = '#8b4e24';
+          ctx.strokeStyle = '#3d1e0a';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(ex, -16, 6.5, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillStyle = '#f3bfa0';
+          ctx.beginPath();
+          ctx.arc(ex, -16, 3.6, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        // Head
+        ctx.fillStyle = '#8b4e24';
+        ctx.strokeStyle = '#3d1e0a';
+        ctx.lineWidth = 2.2;
+        ctx.beginPath();
+        ctx.arc(0, -16, 15.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        // Cute hair tuft on top
+        ctx.fillStyle = '#6f3e1d';
+        ctx.beginPath();
+        ctx.moveTo(-4, -30);
+        ctx.quadraticCurveTo(0, -39, 5, -30);
+        ctx.quadraticCurveTo(9, -36, 9, -28);
+        ctx.closePath();
+        ctx.fill();
+
+        // Face mask (heart-like tan face)
+        ctx.fillStyle = '#f6d5a9';
+        ctx.beginPath();
+        ctx.arc(facing * 2 - 4, -18, 6.8, 0, Math.PI * 2);
+        ctx.arc(facing * 2 + 4, -18, 6.8, 0, Math.PI * 2);
+        ctx.ellipse(facing * 2, -11, 10.5, 7.5, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Eyes
+        const eyeY = -18;
+        const leftEyeX = facing * 2 - 4.5;
+        const rightEyeX = facing * 2 + 4.5;
+
+        if (monkey.dead) {
+          // Dizzy X eyes
+          ctx.strokeStyle = '#222';
+          ctx.lineWidth = 2.2;
+          for (const ex of [leftEyeX, rightEyeX]) {
+            ctx.beginPath();
+            ctx.moveTo(ex - 3, eyeY - 3);
+            ctx.lineTo(ex + 3, eyeY + 3);
+            ctx.moveTo(ex + 3, eyeY - 3);
+            ctx.lineTo(ex - 3, eyeY + 3);
+            ctx.stroke();
+          }
+        } else if (monkey.happyTime > 0) {
+          // Happy curved squint eyes after eating banana!
+          ctx.strokeStyle = '#241409';
+          ctx.lineWidth = 2.4;
+          for (const ex of [leftEyeX, rightEyeX]) {
+            ctx.beginPath();
+            ctx.arc(ex, eyeY + 1, 3.2, Math.PI, Math.PI * 2);
+            ctx.stroke();
+          }
+        } else {
+          // Bright expressive eyes
+          for (const ex of [leftEyeX, rightEyeX]) {
+            ctx.fillStyle = '#1b110a';
+            ctx.beginPath();
+            ctx.arc(ex, eyeY, 2.8, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#fff';
+            ctx.beginPath();
+            ctx.arc(ex + 0.8, eyeY - 1, 1, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+
+        // Cute smile / surprised mouth
+        ctx.strokeStyle = '#4a2511';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        if (monkey.dead) {
+          ctx.arc(facing * 2, -9, 3.2, 0, Math.PI * 2);
+        } else if (monkey.happyTime > 0) {
+          ctx.arc(facing * 2, -11, 5, 0.15, Math.PI - 0.15);
+        } else {
+          ctx.arc(facing * 2, -12, 4.2, 0.25, Math.PI - 0.25);
+        }
+        ctx.stroke();
+
+        // Rosy cheeks when happy
+        if (monkey.happyTime > 0) {
+          ctx.fillStyle = 'rgba(255, 107, 107, 0.45)';
+          ctx.beginPath();
+          ctx.arc(facing * 2 - 8, -13, 2.8, 0, Math.PI * 2);
+          ctx.arc(facing * 2 + 8, -13, 2.8, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        // Front arm reaching up to grab the trunk
+        ctx.strokeStyle = '#8b4e24';
+        ctx.lineWidth = 7.5;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(facing * 4, -1);
+        ctx.lineTo(facing * 24, -8 + armSwing);
+        ctx.stroke();
+        // Front paw
+        ctx.fillStyle = '#f2cfa0';
+        ctx.beginPath();
+        ctx.arc(facing * 25, -8 + armSwing, 4.2, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
+      }
+
+      function drawParticlesAndTexts() {
+        for (const p of particles) {
+          ctx.save();
+          ctx.globalAlpha = Math.max(0, p.life / p.maxLife);
+          ctx.fillStyle = p.color;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+
+        for (const ft of floatingTexts) {
+          ctx.save();
+          ctx.globalAlpha = Math.max(0, ft.life / ft.maxLife);
+          ctx.font = `900 ${Math.round(20 * ft.scale)}px system-ui, sans-serif`;
+          ctx.textAlign = 'center';
+          ctx.lineWidth = 4;
+          ctx.strokeStyle = 'rgba(20, 10, 0, 0.78)';
+          ctx.strokeText(ft.text, ft.x, ft.y);
+          ctx.fillStyle = ft.color;
+          ctx.fillText(ft.text, ft.x, ft.y);
+          ctx.restore();
+        }
+      }
+
+      function render() {
+        const layout = getLayout();
+
+        ctx.save();
+        if (shakeTime > 0) {
+          const sx = (Math.random() - 0.5) * shakeIntensity * 2;
+          const sy = (Math.random() - 0.5) * shakeIntensity * 2;
+          ctx.translate(sx, sy);
+        }
+
+        drawBackground();
+        drawTrunk(layout);
+
+        for (const b of bananas) drawBanana(b, layout);
+        for (const o of obstacles) drawObstacle(o, layout);
+
+        drawMonkey();
+        drawFallingWarnings(layout);
+        drawParticlesAndTexts();
+
+        // Screen hit flash
+        if (flashAlpha > 0 && flashColor) {
+          ctx.fillStyle = flashColor;
+          ctx.globalAlpha = flashAlpha;
+          ctx.fillRect(-20, -20, W + 40, H + 40);
+        }
+
+        ctx.restore();
+      }
+
+      // ============================================================
+      // MAIN RAF LOOP
+      // ============================================================
+      let lastFrame = performance.now();
+
+      function loop(now) {
+        const rawDt = (now - lastFrame) / 1000;
+        lastFrame = now;
+        const dt = Math.min(0.05, Math.max(0, rawDt));
+
+        update(dt);
+        render();
+        requestAnimationFrame(loop);
+      }
+
+      // Initialize menu scene
+      resetGame();
+      requestAnimationFrame(loop);
+    })();
+  </script>
+</body>
+</html>
